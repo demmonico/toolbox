@@ -1,0 +1,9 @@
+# OS-specific files
+.DS_Store
+
+# temp
+*.zip
+
+# IDE-specific files
+.idea
+.vscode

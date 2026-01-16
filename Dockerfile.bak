@@ -1,0 +1,53 @@
+FROM nicolaka/netshoot
+
+# user and group setup
+ENV APP_HOME=/toolbox
+ENV APP_USER=toolbox
+RUN addgroup -g 1001 -S "${APP_USER}" && \
+    adduser -h "${APP_HOME}" -s /bin/zsh -D -u 1001 -S -G "${APP_USER}" "${APP_USER}" \
+    && chown -R "${APP_USER}": "${APP_HOME}"
+
+# install clients and build dependencies
+RUN apk add --no-cache \
+        python3 \
+        py3-pip \
+        py3-virtualenv \
+        gcc \
+        g++ \
+        make \
+        musl-dev \
+        aws-cli \
+        groff \
+        less \
+        mysql-client \
+        redis \
+        mongodb-tools \
+        nodejs \
+        npm
+
+# Create command symlinks (mongosh is installed to /usr/bin via npm)
+RUN ln -s $(which redis-cli) /usr/local/bin/redis
+
+# Install mongosh via npm (portable, no glibc dependency)        
+RUN npm install -g mongosh && npm cache clean --force
+
+# Copy helper scripts
+COPY src/bin/* /usr/local/bin/
+RUN chmod +x /usr/local/bin/mongo /usr/local/bin/mysql-locks /usr/local/bin/target-printenv /usr/local/bin/target-mount-fs /usr/local/bin/help
+
+WORKDIR $APP_HOME
+
+# install Python dependencies
+COPY pyproject.toml poetry.lock ./
+RUN python3 -m venv .venv && \
+    .venv/bin/pip install --no-cache-dir poetry && \
+    .venv/bin/poetry install --without dev --no-root
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    VIRTUAL_ENV="${APP_HOME}/.venv" \
+    PATH="${APP_HOME}/.venv/bin:${PATH}"
+
+# copy scripts
+COPY src/scripts/mysql-locks-helper.py .
+
+USER ${APP_USER}

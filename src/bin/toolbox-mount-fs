@@ -1,0 +1,45 @@
+#!/bin/sh
+# Access target container's root filesystem
+
+echo "Checking access to target container filesystem..."
+echo ""
+
+# Test if we can access /proc/1/root
+if ls /proc/1/root >/dev/null 2>&1; then
+    echo "✓ Target filesystem accessible at: /proc/1/root"
+    echo ""
+    
+    # Try to create symlinks for convenience
+    if ln -sf /proc/1/root /target 2>/dev/null; then
+        echo "✓ Symlink created: /target -> /proc/1/root"
+        echo ""
+        echo "Usage:"
+        echo "  ls /target"
+        echo "  cat /target/etc/hostname"
+        echo "  cd /target && pwd"
+    elif ln -sf /proc/1/root ~/target 2>/dev/null; then
+        echo "✓ Symlink created: ~/target -> /proc/1/root"
+        echo ""
+        echo "Usage:"
+        echo "  ls ~/target"
+        echo "  cat ~/target/etc/hostname"
+        echo "  cd ~/target && pwd"
+    else
+        echo ""
+        echo "Usage:"
+        echo "  ls /proc/1/root"
+        echo "  cat /proc/1/root/etc/hostname"
+    fi
+else
+    echo "✗ Cannot access /proc/1/root - Permission denied"
+    echo ""
+    echo "This ephemeral container lacks sufficient privileges."
+    echo ""
+    echo "To enable filesystem access, the pod's security context must allow it."
+    echo "Common limitations:"
+    echo "  - Pod has restrictive securityContext settings"
+    echo "  - PodSecurityPolicy or SecurityContextConstraints restrictions"
+    echo "  - AppArmor or SELinux policies blocking access"
+    echo ""
+    echo "Alternative: Use 'kubectl cp' to copy files from the target pod."
+fi

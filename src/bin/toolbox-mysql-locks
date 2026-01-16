@@ -1,0 +1,2 @@
+#!/bin/sh
+cd $APP_HOME && exec python mysql-locks-helper.py "$@"
